@@ -50,8 +50,31 @@ ngrok version
 ```text
 api-mock/
 │
-├── mock_api.py
-├── requirements.txt
+├── app/
+│   ├── __init__.py
+│   ├── main.py             # FastAPI app initialization, routes registration
+│   ├── config.py           # Configuration settings, credentials, env vars
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── security.py     # Auth helpers (Basic, OAuth, API key)
+│   │   └── logger.py       # Thread-safe in-memory log store
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── auth.py         # Routes for GET /basic/auth, GET /oauth/protected
+│   │   ├── webhook.py      # Routes for GET/POST/PUT /webhook
+│   │   └── logs.py         # Routes for GET/DELETE /logs and GET /logs/json
+│   └── templates/
+│       └── dashboard.html  # Premium request log dashboard (HTML/CSS/JS)
+│
+├── tests/                  # Automated tests to ensure maintainability
+│   ├── __init__.py
+│   ├── conftest.py         # Test client fixture and setup
+│   ├── test_auth.py        # Test auth endpoints
+│   ├── test_webhook.py     # Test webhook endpoints
+│   └── test_logs.py        # Test logs endpoints
+│
+├── mock_api.py             # Lightweight entrypoint wrapper (backwards-compatible)
+├── requirements.txt        # Package and testing dependencies
 ├── README.md
 └── .gitignore
 ```
@@ -74,6 +97,10 @@ The `requirements.txt` contains:
 fastapi
 uvicorn[standard]
 python-multipart
+
+# Dev & testing dependencies
+pytest
+httpx
 ```
 
 ---
@@ -115,22 +142,24 @@ Swagger UI can be used to test the authentication endpoints directly.
 | `GET`    | `/`                | Health check                        |
 | `GET`    | `/basic/auth`      | Test Basic Authentication           |
 | `GET`    | `/oauth/protected` | Test OAuth / Bearer Token           |
-| `POST`   | `/webhook`         | Receive authenticated webhook       |
-| `GET`    | `/webhook`         | Receive/test webhook                |
-| `PUT`    | `/webhook`         | Receive/test webhook                |
+| `POST`   | `/webhook` or `/webhook/*` | Receive authenticated webhook under main or subpaths |
+| `GET`    | `/webhook` or `/webhook/*` | Receive/test webhook under main or subpaths          |
+| `PUT`    | `/webhook` or `/webhook/*` | Receive/test webhook under main or subpaths          |
 | `GET`    | `/logs`            | Browser-based request log dashboard |
 | `GET`    | `/logs/json`       | Return request logs as JSON         |
 | `DELETE` | `/logs`            | Clear request logs                  |
+| `WS`     | `/logs/ws`         | Real-time WebSocket update push     |
 | `GET`    | `/docs`            | Swagger UI                          |
 
 ---
 
 # Webhook Endpoint
 
-The main webhook endpoint is:
+The webhook endpoint accepts requests on the main route as well as any subpath:
 
 ```text
 POST /webhook
+POST /webhook/{any/subpath/or/device/id}
 ```
 
 The same endpoint supports:
@@ -513,18 +542,16 @@ The dashboard displays:
 
 * Timestamp
 * HTTP method
-* Endpoint
+* Endpoint path
 * HTTP status
 * Authentication type
 * Authentication result
-* Event
-* Request ID
 * Remote IP
 * Request body
 * Headers
 * Query parameters
 
-The page automatically refreshes every 5 seconds.
+The dashboard updates in real time using WebSockets (with a 10-second polling fallback if the WebSocket is disconnected).
 
 Example:
 
@@ -577,8 +604,6 @@ Example:
       "authentication_success": true,
       "authentication_message": "Authenticated via Basic Auth",
       "status_code": 200,
-      "event": "Test Basic Auth",
-      "id": "BASIC-001",
       "headers": {},
       "query_parameters": {},
       "body": {
@@ -925,6 +950,55 @@ https://example.com/logs
 The dashboard does not require a separate login in the current implementation.
 
 > **Important:** This mock server is intended for testing. Do not expose real credentials, production payloads, or sensitive data through the public log dashboard.
+
+# Deploying to Render.com
+
+This mock server is configured and ready to be deployed as a **Web Service** on [Render](https://render.com/).
+
+### Deployment Steps:
+
+1. **Create a Web Service**:
+   * Connect your GitHub repository containing this codebase to Render.
+   * Select **Web Service** as the service type.
+
+2. **Configure Service Settings**:
+   * **Runtime**: `Python`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `python mock_api.py` (The app launcher automatically detects Render's dynamic `$PORT` variable and disables hot reloading).
+
+3. **Set Custom Credentials (Optional)**:
+   * Under the **Environment** tab in your Render dashboard, add environment variables (e.g., `MOCK_API_KEY`, `MOCK_BASIC_USER`, `MOCK_BASIC_PASS`) to customize authentication secrets.
+
+4. **Verify Live Console**:
+   * Once deployed, navigate to `https://<your-subdomain>.onrender.com/logs` in your browser to view your live request log dashboard.
+
+---
+
+# Configuration Options (Environment Variables)
+
+You can customize the credentials and logging thresholds by setting the following environment variables:
+
+| Environment Variable | Description | Default Value |
+| --- | --- | --- |
+| `MOCK_BASIC_USER` | Expected username for Basic Authentication | `admin` |
+| `MOCK_BASIC_PASS` | Expected password for Basic Authentication | `secretpassword` |
+| `MOCK_API_KEY` | Expected API key value | `my-super-secret-api-key-123` |
+| `MOCK_BEARER_TOKEN` | Expected OAuth / Bearer Token value | `oauth-token-xyz-789` |
+| `MOCK_MAX_LOGS` | Maximum number of request logs kept in memory | `100` |
+
+---
+
+# Running Automated Tests
+
+A comprehensive test suite is provided in the `tests/` directory to verify all routes and authentication logic.
+
+To run the tests:
+
+```bash
+pytest -v
+```
+
+This will run tests on authentication endpoints, webhook multi-auth verification, and request logging.
 
 ---
 

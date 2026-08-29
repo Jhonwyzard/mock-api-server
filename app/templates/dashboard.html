@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Mock Server Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-color: #3b82f6;
+            
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #6366f1;
+            
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --method-get: #10b981;
+            --method-post: #6366f1;
+            --method-put: #f59e0b;
+            --method-delete: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, rgba(99, 102, 241, 0.08) 0, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            padding: 1rem 1rem;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* Header design */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .brand-section h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .brand-section p {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Analytics stats bar */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        .stat-card.success::before { background: var(--success-color); }
+        .stat-card.warning::before { background: var(--warning-color); }
+        .stat-card.danger::before { background: var(--danger-color); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        /* Controls / Filter Bar */
+        .controls-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .filters-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            flex-grow: 1;
+        }
+
+        .search-wrapper {
+            position: relative;
+            min-width: 280px;
+            flex-grow: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.65rem 1rem 0.65rem 2.5rem;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .select-filter {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.65rem 2rem 0.65rem 1rem;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 0.65rem 1.25rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border-color: transparent;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-color);
+            color: #60a5fa;
+        }
+
+        /* Order Info Banner */
+        .order-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+        }
+
+        .sort-toggle {
+            cursor: pointer;
+            color: var(--accent-color);
+            background: none;
+            border: none;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .sort-toggle:hover {
+            text-decoration: underline;
+        }
+
+        /* AWS CloudWatch logs style layout */
+        .logs-container {
+            background: rgba(10, 15, 30, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-card {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-card:last-child {
+            border-bottom: none;
+        }
+
+        .log-row-header {
+            display: grid;
+            grid-template-columns: 160px 1fr 60px;
+            align-items: center;
+            padding: 0.45rem 1rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            user-select: none;
+        }
+
+        .log-row-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .log-timestamp {
+            color: #10b981; /* Default timestamp color */
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .log-row-summary {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge-method {
+            font-weight: 700;
+            font-size: 0.7rem;
+            padding: 0.05rem 0.3rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-method.get { background: rgba(16, 185, 129, 0.15); color: var(--method-get); }
+        .badge-method.post { background: rgba(99, 102, 241, 0.15); color: var(--method-post); }
+        .badge-method.put { background: rgba(245, 158, 11, 0.15); color: var(--method-put); }
+        .badge-method.delete { background: rgba(239, 68, 68, 0.15); color: var(--method-delete); }
+
+        .log-path {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .badge-status {
+            font-weight: 600;
+            font-size: 0.7rem;
+            padding: 0.05rem 0.3rem;
+            border-radius: 4px;
+        }
+
+        .badge-status.success { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+        .badge-status.failed { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+
+        .log-auth-info {
+            color: var(--text-secondary);
+        }
+
+        .log-event-tag {
+            color: var(--warning-color);
+            font-style: italic;
+        }
+
+        .log-index {
+            color: var(--text-secondary);
+            text-align: right;
+            font-size: 0.75rem;
+        }
+
+        /* Detail expanded view */
+        .log-row-details {
+            display: none;
+            background: rgba(0, 0, 0, 0.3);
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .log-card.open .log-row-details {
+            display: block;
+        }
+
+        .log-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 8px;
+            padding: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 1rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .meta-label {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            font-family: var(--font-main);
+        }
+
+        .meta-val {
+            font-size: 0.75rem;
+            font-weight: 500;
+            font-family: var(--font-mono);
+            word-break: break-all;
+        }
+
+        .meta-val.success { color: var(--success-color); }
+        .meta-val.failed { color: #f87171; }
+
+        .payload-details {
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .details-group {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .details-group:last-child {
+            border-bottom: none;
+        }
+
+        .details-trigger {
+            background: rgba(255, 255, 255, 0.01);
+            padding: 0.45rem 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .details-trigger:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .trigger-arrow {
+            transition: transform 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .details-group.open .trigger-arrow {
+            transform: rotate(90deg);
+        }
+
+        .details-content {
+            display: none;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.65rem 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            position: relative;
+        }
+
+        .details-group.open .details-content {
+            display: block;
+        }
+
+        pre {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #d1d5db;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.4rem;
+            right: 0.4rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            padding: 0.15rem 0.35rem;
+            font-size: 0.65rem;
+            cursor: pointer;
+            font-family: var(--font-main);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .copy-btn.copied {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--success-color);
+        }
+
+        .log-url {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            word-break: break-all;
+        }
+
+        /* Empty state */
+        .empty-state {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 3rem 1.5rem;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin: 0 auto;
+            font-size: 0.9rem;
+        }
+
+        /* =====================================================================
+           AWS CLOUDWATCH / SIMPLE MODE OVERRIDES
+           ===================================================================== */
+        body.simple-mode {
+            background-color: #f9fafb !important;
+            background-image: none !important;
+            color: #111827 !important;
+        }
+
+        body.simple-mode * {
+            transition: none !important;
+            animation: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        body.simple-mode header {
+            border-bottom: 1px solid #d1d5db !important;
+            padding-bottom: 0.5rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        body.simple-mode .brand-section h1 {
+            background: none !important;
+            -webkit-text-fill-color: initial !important;
+            color: #111827 !important;
+            font-size: 1.4rem !important;
+        }
+
+        body.simple-mode .brand-section p {
+            color: #4b5563 !important;
+        }
+
+        body.simple-mode .status-badge {
+            background: #e5e7eb !important;
+            border: 1px solid #9ca3af !important;
+            color: #1f2937 !important;
+        }
+
+        body.simple-mode .status-dot {
+            background-color: #10b981 !important;
+        }
+
+        body.simple-mode .stats-grid {
+            gap: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+
+        body.simple-mode .stat-card {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 6px !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+
+        body.simple-mode .stat-card::before {
+            display: none !important;
+        }
+
+        body.simple-mode .stat-label {
+            color: #4b5563 !important;
+            font-size: 0.65rem !important;
+        }
+
+        body.simple-mode .stat-value {
+            color: #111827 !important;
+            font-size: 1.2rem !important;
+        }
+
+        body.simple-mode .controls-section {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 8px !important;
+            padding: 0.5rem 0.75rem !important;
+            margin-bottom: 0.5rem !important;
+            gap: 0.5rem !important;
+        }
+
+        body.simple-mode .order-banner {
+            background: #f3f4f6 !important;
+            border: 1px solid #d1d5db !important;
+            color: #374151 !important;
+        }
+
+        body.simple-mode .sort-toggle {
+            color: #2563eb !important;
+        }
+
+        body.simple-mode .search-input,
+        body.simple-mode .select-filter,
+        body.simple-mode .btn {
+            background: #ffffff !important;
+            border: 1px solid #cccccc !important;
+            color: #333333 !important;
+            border-radius: 4px !important;
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.8rem !important;
+        }
+
+        body.simple-mode .search-input {
+            padding-left: 2rem !important;
+        }
+
+        body.simple-mode .select-filter {
+            background-position: right 0.5rem center !important;
+            padding-right: 1.5rem !important;
+        }
+
+        body.simple-mode .btn.active {
+            background: #e5e7eb !important;
+            border-color: #9ca3af !important;
+            color: #111827 !important;
+        }
+
+        body.simple-mode .logs-container {
+            background: #ffffff !important;
+            border: 1px solid #cccccc !important;
+            border-radius: 6px !important;
+        }
+
+        body.simple-mode .log-card {
+            border-bottom: 1px solid #dddddd !important;
+        }
+
+        body.simple-mode .log-row-header:hover {
+            background: #f9fafb !important;
+        }
+
+        body.simple-mode .log-timestamp {
+            color: #0d9488 !important;
+        }
+
+        body.simple-mode .badge-method {
+            background: #e5e7eb !important;
+            color: #1f2937 !important;
+            border: 1px solid #9ca3af !important;
+        }
+
+        body.simple-mode .log-path {
+            color: #111827 !important;
+        }
+
+        body.simple-mode .badge-status.success {
+            background: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+        }
+
+        body.simple-mode .badge-status.failed {
+            background: #fef2f2 !important;
+            color: #991b1b !important;
+            border: 1px solid #fecaca !important;
+        }
+
+        body.simple-mode .log-auth-info {
+            color: #4b5563 !important;
+        }
+
+        body.simple-mode .log-event-tag {
+            color: #d97706 !important;
+        }
+
+        body.simple-mode .log-index {
+            color: #4b5563 !important;
+        }
+
+        body.simple-mode .log-row-details {
+            background: #f9fafb !important;
+            border-top: 1px solid #e5e7eb !important;
+        }
+
+        body.simple-mode .log-meta-grid {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        body.simple-mode .meta-label {
+            color: #4b5563 !important;
+        }
+
+        body.simple-mode .meta-val {
+            color: #111827 !important;
+        }
+
+        body.simple-mode .meta-val.success { color: #065f46 !important; }
+        body.simple-mode .meta-val.failed { color: #991b1b !important; }
+
+        body.simple-mode .payload-details {
+            border: 1px solid #d1d5db !important;
+        }
+
+        body.simple-mode .details-group {
+            border-bottom: 1px solid #d1d5db !important;
+        }
+
+        body.simple-mode .details-trigger {
+            background: #f3f4f6 !important;
+            color: #374151 !important;
+        }
+
+        body.simple-mode .details-content {
+            background: #ffffff !important;
+            border-top: 1px solid #d1d5db !important;
+        }
+
+        body.simple-mode pre {
+            background: #f9fafb !important;
+            color: #111827 !important;
+            border: 1px solid #e5e7eb !important;
+        }
+
+        body.simple-mode .copy-btn {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+            color: #374151 !important;
+        }
+
+        body.simple-mode .log-url {
+            color: #4b5563 !important;
+        }
+
+        body.simple-mode .empty-state {
+            background: #ffffff !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        @media (max-width: 768px) {
+            body.simple-mode .log-row-header {
+                grid-template-columns: 1fr 60px;
+                gap: 0.5rem;
+            }
+            body.simple-mode .log-timestamp {
+                display: block;
+                margin-bottom: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="brand-section">
+                <h1>📋 API Mock Server</h1>
+                <p>Real-time authenticated request and webhook logs console</p>
+            </div>
+            <div class="server-status">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="server-status-text">Server Live</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ANALYTICS STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Total Requests</span>
+                <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-card success">
+                <span class="stat-label">Success (2xx)</span>
+                <span class="stat-value" id="stat-success">0</span>
+            </div>
+            <div class="stat-card danger">
+                <span class="stat-label">Failed (4xx/5xx)</span>
+                <span class="stat-value" id="stat-failed">0</span>
+            </div>
+            <div class="stat-card warning">
+                <span class="stat-label">Active Filters</span>
+                <span class="stat-value" id="stat-filters">0</span>
+            </div>
+        </div>
+
+        <!-- CONTROLS AND FILTERS -->
+        <div class="controls-section">
+            <div class="filters-group">
+                <div class="search-wrapper">
+                    <!-- Search SVG Icon -->
+                    <span class="search-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </span>
+                    <input type="text" id="search-filter" class="search-input" placeholder="Search by path, message, body, headers...">
+                </div>
+                
+                <select id="method-filter" class="select-filter">
+                    <option value="">All HTTP Methods</option>
+                    <option value="POST">POST</option>
+                    <option value="GET">GET</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+
+                <select id="auth-filter" class="select-filter">
+                    <option value="">All Auth Results</option>
+                    <option value="success">Success Only</option>
+                    <option value="failed">Failed Only</option>
+                </select>
+
+                <select id="authtype-filter" class="select-filter">
+                    <option value="">All Authentication Types</option>
+                    <option value="BASIC AUTH">Basic Auth</option>
+                    <option value="OAUTH / BEARER TOKEN">OAuth / Bearer</option>
+                    <option value="X-API-KEY">X-API-Key</option>
+                    <option value="APIKEY HEADER">ApiKey Header</option>
+                    <option value="QUERY PARAMETER API KEY">Query Param Key</option>
+                    <option value="NONE / INVALID">None / Invalid</option>
+                </select>
+            </div>
+
+            <div class="actions-group">
+                <!-- Theme/Mode Toggle (Fancy vs Simple) -->
+                <button id="toggle-style" class="btn" title="Toggle Layout Mode">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <span id="style-btn-text">Layout: Simple</span>
+                </button>
+
+                <button id="toggle-refresh" class="btn active">
+                    <!-- Pause/Play Icon Dynamic inside JS -->
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="17" x2="9" y2="7"></line><line x1="15" y1="17" x2="15" y2="7"></line></svg>
+                    <span id="refresh-btn-text">Live (10s + WS)</span>
+                </button>
+                <button id="trigger-refresh" class="btn" title="Refresh Now">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></svg>
+                </button>
+                <button id="clear-btn" class="btn btn-danger">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Clear Logs</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ORDERING INFO BANNER -->
+        <div class="order-banner">
+            <span id="order-note-text">Logs are ordered descending (Newest first)</span>
+            <button id="toggle-sort" class="sort-toggle">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 15 12 20 17 15"></polyline><polyline points="7 9 12 4 17 9"></polyline></svg>
+                <span id="sort-btn-text">Switch to Oldest First</span>
+            </button>
+        </div>
+
+        <!-- LOGS CARDS CONTAINER (AWS CLOUDWATCH STYLE LIST) -->
+        <div id="logs-list" class="logs-container">
+            <!-- RENDERED BY JAVASCRIPT -->
+            <div class="empty-state">
+                <span class="empty-icon">📥</span>
+                <h3>No requests received</h3>
+                <p>Logs will automatically display here as requests reach the server.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // Global variables
+        let rawLogs = [];
+        let refreshInterval = null;
+        let isLive = true;
+        let isSimpleMode = true; // Default to Simple Mode as requested by user
+        let sortNewestFirst = true; // Default sorting (chronological desc)
+
+        // Global sets to track open elements across re-renders
+        const openCardsSet = new Set();
+        const openDetailsSet = new Set();
+
+        // UI references
+        const searchFilter = document.getElementById('search-filter');
+        const methodFilter = document.getElementById('method-filter');
+        const authFilter = document.getElementById('auth-filter');
+        const authtypeFilter = document.getElementById('authtype-filter');
+        const toggleRefreshBtn = document.getElementById('toggle-refresh');
+        const triggerRefreshBtn = document.getElementById('trigger-refresh');
+        const toggleStyleBtn = document.getElementById('toggle-style');
+        const styleBtnText = document.getElementById('style-btn-text');
+        const clearBtn = document.getElementById('clear-btn');
+        const logsList = document.getElementById('logs-list');
+        const toggleSortBtn = document.getElementById('toggle-sort');
+        const sortBtnText = document.getElementById('sort-btn-text');
+        const orderNoteText = document.getElementById('order-note-text');
+        
+        const statTotal = document.getElementById('stat-total');
+        const statSuccess = document.getElementById('stat-success');
+        const statFailed = document.getElementById('stat-failed');
+        const statFilters = document.getElementById('stat-filters');
+
+        // Escape HTML to prevent injection
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Parse ISO timestamp to YYYY-MM-DD HH:MM:SS format
+        function formatTimestamp(isoString) {
+            try {
+                const date = new Date(isoString);
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                const hh = String(date.getHours()).padStart(2, '0');
+                const mm = String(date.getMinutes()).padStart(2, '0');
+                const ss = String(date.getSeconds()).padStart(2, '0');
+                return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+            } catch (e) {
+                return isoString;
+            }
+        }
+
+        // Apply Layout Mode Style
+        function applyLayoutMode() {
+            if (isSimpleMode) {
+                document.body.classList.add('simple-mode');
+                styleBtnText.innerText = 'Layout: Simple';
+            } else {
+                document.body.classList.remove('simple-mode');
+                styleBtnText.innerText = 'Layout: Modern';
+            }
+        }
+
+        // Load configuration preference
+        if (localStorage.getItem('logsLayoutMode') === 'modern') {
+            isSimpleMode = false;
+        }
+        applyLayoutMode();
+
+        // Style toggle button handler
+        toggleStyleBtn.addEventListener('click', () => {
+            isSimpleMode = !isSimpleMode;
+            localStorage.setItem('logsLayoutMode', isSimpleMode ? 'simple' : 'modern');
+            applyLayoutMode();
+        });
+
+        // Toggle logs sorting
+        toggleSortBtn.addEventListener('click', () => {
+            sortNewestFirst = !sortNewestFirst;
+            if (sortNewestFirst) {
+                sortBtnText.innerText = 'Switch to Oldest First';
+                orderNoteText.innerText = 'Logs are ordered descending (Newest first)';
+            } else {
+                sortBtnText.innerText = 'Switch to Newest First';
+                orderNoteText.innerText = 'Logs are ordered ascending (Oldest first)';
+            }
+            render();
+        });
+
+        // Fetch logs from JSON API
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/logs/json');
+                if (!response.ok) throw new Error('API request failed');
+                const data = await response.json();
+                rawLogs = data.logs || [];
+                render();
+                
+                // Reset connection status if it was in error state
+                document.querySelector('.server-status .status-badge').style.background = '';
+                document.querySelector('.server-status .status-badge').style.borderColor = '';
+                document.querySelector('.server-status .status-badge').style.color = '';
+                document.querySelector('.server-status .status-dot').style.backgroundColor = '';
+                document.getElementById('server-status-text').innerText = 'Server Live';
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                document.querySelector('.server-status .status-badge').style.background = 'rgba(239, 68, 68, 0.1)';
+                document.querySelector('.server-status .status-badge').style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                document.querySelector('.server-status .status-badge').style.color = '#f87171';
+                document.querySelector('.server-status .status-dot').style.backgroundColor = '#ef4444';
+                document.getElementById('server-status-text').innerText = 'Connection Error';
+            }
+        }
+
+        // Send clear request
+        async function clearLogs() {
+            if (!confirm('Are you sure you want to clear request logs?')) return;
+            try {
+                const response = await fetch('/logs', { method: 'DELETE' });
+                if (response.ok) {
+                    rawLogs = [];
+                    render();
+                }
+            } catch (error) {
+                console.error('Error clearing logs:', error);
+            }
+        }
+
+        // Copy content helper
+        function copyToClipboard(button, targetText) {
+            navigator.clipboard.writeText(targetText).then(() => {
+                const originalText = button.innerHTML;
+                button.classList.add('copied');
+                button.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Copied!
+                `;
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.innerHTML = originalText;
+                }, 1500);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        // Setup details dropdown toggles (saves open state dynamically)
+        function registerToggles(logCardElement, logTimestamp) {
+            const groups = logCardElement.querySelectorAll('.details-group');
+            groups.forEach(group => {
+                const trigger = group.querySelector('.details-trigger');
+                const groupId = group.id;
+                
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Stop trigger from closing the entire card
+                    const isOpen = group.classList.toggle('open');
+                    if (isOpen) {
+                        openDetailsSet.add(groupId);
+                    } else {
+                        openDetailsSet.delete(groupId);
+                    }
+                });
+            });
+        }
+
+        // Setup header row collapsible behavior (saves open state dynamically)
+        function registerCardAccordion(logCardElement, logTimestamp) {
+            const header = logCardElement.querySelector('.log-row-header');
+            header.addEventListener('click', () => {
+                const isOpen = logCardElement.classList.toggle('open');
+                if (isOpen) {
+                    openCardsSet.add(logTimestamp);
+                } else {
+                    openCardsSet.delete(logTimestamp);
+                }
+            });
+        }
+
+        // Compute counts and filter lists
+        function render() {
+            // Stats updates
+            statTotal.innerText = rawLogs.length;
+            statSuccess.innerText = rawLogs.filter(l => l.status_code >= 200 && l.status_code < 300).length;
+            statFailed.innerText = rawLogs.filter(l => l.status_code >= 400).length;
+
+            const query = searchFilter.value.toLowerCase().trim();
+            const methodVal = methodFilter.value;
+            const authVal = authFilter.value;
+            const authtypeVal = authtypeFilter.value;
+
+            // Count active filters
+            let activeFiltersCount = 0;
+            if (query) activeFiltersCount++;
+            if (methodVal) activeFiltersCount++;
+            if (authVal) activeFiltersCount++;
+            if (authtypeVal) activeFiltersCount++;
+            statFilters.innerText = activeFiltersCount;
+
+            // Apply filters
+            let filteredLogs = rawLogs.filter(log => {
+                if (methodVal && log.method !== methodVal) return false;
+                
+                if (authVal) {
+                    if (authVal === 'success' && !log.authentication_success) return false;
+                    if (authVal === 'failed' && log.authentication_success) return false;
+                }
+
+                if (authtypeVal && log.authentication_type !== authtypeVal) return false;
+
+                if (query) {
+                    const pathStr = String(log.path || '').toLowerCase();
+                    const msgStr = String(log.authentication_message || '').toLowerCase();
+                    const bodyStr = JSON.stringify(log.body || '').toLowerCase();
+                    const headersStr = JSON.stringify(log.headers || '').toLowerCase();
+
+                    if (!pathStr.includes(query) &&
+                        !msgStr.includes(query) &&
+                        !bodyStr.includes(query) &&
+                        !headersStr.includes(query)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            // Calculate line numbering
+            const totalCount = rawLogs.length;
+            
+            // Map logs with their original chronological index to preserve accurate line numbering
+            const logsWithIndex = filteredLogs.map((log) => {
+                // Find index of this log in the original rawLogs list (which is newest first)
+                const originalIndex = rawLogs.indexOf(log);
+                const chronologicalLineNumber = originalIndex !== -1 ? (totalCount - originalIndex) : '?';
+                return { log, lineNumber: chronologicalLineNumber };
+            });
+
+            if (!sortNewestFirst) {
+                logsWithIndex.reverse(); // Reverse logs so oldest is at the top
+            }
+
+            // Reset list UI
+            logsList.innerHTML = '';
+
+            if (logsWithIndex.length === 0) {
+                logsList.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-icon">🔍</span>
+                        <h3>No matching results</h3>
+                        <p>Try clearing your search query or loosening your search filters.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render matching logs
+            logsWithIndex.forEach(({ log, lineNumber }) => {
+                const formattedBody = typeof log.body === 'object' ? JSON.stringify(log.body, null, 2) : String(log.body || 'Empty body');
+                const formattedHeaders = JSON.stringify(log.headers, null, 2);
+                const formattedQueryParams = JSON.stringify(log.query_parameters, null, 2);
+
+                const statusClass = log.authentication_success ? 'success' : 'failed';
+                const statusBadgeClass = log.authentication_success ? 'success' : 'failed';
+                const statusText = log.authentication_success ? 'SUCCESS' : 'FAILED';
+                
+                // Read open state from global Sets to prevent collapsing during refresh cycles
+                const cardOpenClass = openCardsSet.has(log.timestamp) ? 'open' : '';
+                const bodyGroupOpenClass = openDetailsSet.has(`body-group-${log.timestamp}`) ? 'open' : '';
+                const headersGroupOpenClass = openDetailsSet.has(`headers-group-${log.timestamp}`) ? 'open' : '';
+                const queryGroupOpenClass = openDetailsSet.has(`query-group-${log.timestamp}`) ? 'open' : '';
+
+                const card = document.createElement('div');
+                card.className = `log-card ${cardOpenClass}`;
+                card.innerHTML = `
+                    <!-- AWS CLOUDWATCH STYLE ROW HEADER -->
+                    <div class="log-row-header">
+                        <div class="log-timestamp">${escapeHtml(formatTimestamp(log.timestamp))}</div>
+                        <div class="log-row-summary">
+                            <span class="badge-method ${log.method.toLowerCase()}">${escapeHtml(log.method)}</span>
+                            <span class="log-path">${escapeHtml(log.path)}</span>
+                            <span class="badge-status ${statusBadgeClass}">HTTP ${log.status_code}</span>
+                            <span class="log-auth-info">[${escapeHtml(log.authentication_type)}: ${statusText}]</span>
+
+                        </div>
+                        <div class="log-index">#${lineNumber}</div>
+                    </div>
+
+                    <!-- EXPANDED DETAILED COLLAPSIBLE VIEWS -->
+                    <div class="log-row-details">
+                        <!-- KEY DETAILS GRID -->
+                        <div class="log-meta-grid">
+                            <div class="meta-item">
+                                <span class="meta-label">Authentication Type</span>
+                                <span class="meta-val">${escapeHtml(log.authentication_type)}</span>
+                            </div>
+                            <div class="meta-item">
+                                <span class="meta-label">Verification Result</span>
+                                <span class="meta-val ${statusClass}">${statusText}</span>
+                            </div>
+
+                            <div class="meta-item">
+                                <span class="meta-label">Remote Client IP</span>
+                                <span class="meta-val">${escapeHtml(log.remote_ip)}</span>
+                            </div>
+                        </div>
+
+
+
+                        <!-- PAYLOAD DETAILED VIEWS -->
+                        <div class="payload-details">
+                            <div class="details-group ${bodyGroupOpenClass}" id="body-group-${escapeHtml(log.timestamp)}">
+                                <div class="details-trigger">
+                                    <span>
+                                        <svg class="trigger-arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; margin-right:4px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                        Request Body
+                                    </span>
+                                </div>
+                                <div class="details-content">
+                                    <button class="copy-btn" onclick="copyToClipboard(this, \`${escapeHtml(formattedBody.replace(/\\/g, '\\\\').replace(/`/g, '\\`'))}\`)">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        Copy
+                                    </button>
+                                    <pre>${escapeHtml(formattedBody)}</pre>
+                                </div>
+                            </div>
+
+                            <div class="details-group ${headersGroupOpenClass}" id="headers-group-${escapeHtml(log.timestamp)}">
+                                <div class="details-trigger">
+                                    <span>
+                                        <svg class="trigger-arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; margin-right:4px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                        Headers
+                                    </span>
+                                </div>
+                                <div class="details-content">
+                                    <button class="copy-btn" onclick="copyToClipboard(this, \`${escapeHtml(formattedHeaders.replace(/\\/g, '\\\\').replace(/`/g, '\\`'))}\`)">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        Copy
+                                    </button>
+                                    <pre>${escapeHtml(formattedHeaders)}</pre>
+                                </div>
+                            </div>
+
+                            <div class="details-group ${queryGroupOpenClass}" id="query-group-${escapeHtml(log.timestamp)}">
+                                <div class="details-trigger">
+                                    <span>
+                                        <svg class="trigger-arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; margin-right:4px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                        Query Parameters
+                                    </span>
+                                </div>
+                                <div class="details-content">
+                                    <button class="copy-btn" onclick="copyToClipboard(this, \`${escapeHtml(formattedQueryParams.replace(/\\/g, '\\\\').replace(/`/g, '\\`'))}\`)">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        Copy
+                                    </button>
+                                    <pre>${escapeHtml(formattedQueryParams)}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FULL TARGET URL -->
+                        <div class="log-url">
+                            <strong>Raw URL:</strong> ${escapeHtml(log.url)}
+                        </div>
+                    </div>
+                `;
+                logsList.appendChild(card);
+                registerToggles(card, log.timestamp);
+                registerCardAccordion(card, log.timestamp);
+            });
+        }
+
+        // Live refresh management (10s polling fallback)
+        function setupAutoRefresh() {
+            if (isLive) {
+                if (!refreshInterval) {
+                    refreshInterval = setInterval(fetchLogs, 10000);
+                }
+            } else {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            }
+        }
+
+        // WebSocket connection logic for real-time push updates
+        let socket = null;
+        function connectWebSocket() {
+            if (!isLive) return;
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/logs/ws`;
+                
+                socket = new WebSocket(wsUrl);
+                
+                socket.onmessage = (event) => {
+                    if (event.data === 'update') {
+                        fetchLogs();
+                    }
+                };
+                
+                socket.onclose = () => {
+                    console.log("WebSocket disconnected. Reconnecting in 3 seconds...");
+                    if (isLive) {
+                        setTimeout(connectWebSocket, 3000);
+                    }
+                };
+                
+                socket.onerror = (err) => {
+                    console.error("WebSocket error:", err);
+                    socket.close();
+                };
+            } catch (e) {
+                console.error("Failed to connect WebSocket:", e);
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+
+        // Event Listeners
+        toggleRefreshBtn.addEventListener('click', () => {
+            isLive = !isLive;
+            if (isLive) {
+                toggleRefreshBtn.classList.add('active');
+                toggleRefreshBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="17" x2="9" y2="7"></line><line x1="15" y1="17" x2="15" y2="7"></line></svg>
+                    <span>Live (10s + WS)</span>
+                `;
+                connectWebSocket();
+                fetchLogs();
+            } else {
+                toggleRefreshBtn.classList.remove('active');
+                disconnectWebSocket();
+                toggleRefreshBtn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span>Paused</span>
+                `;
+            }
+            setupAutoRefresh();
+        });
+
+        triggerRefreshBtn.addEventListener('click', () => {
+            fetchLogs();
+        });
+
+        clearBtn.addEventListener('click', clearLogs);
+
+        // Filter updates trigger immediate re-renders
+        searchFilter.addEventListener('input', render);
+        methodFilter.addEventListener('change', render);
+        authFilter.addEventListener('change', render);
+        authtypeFilter.addEventListener('change', render);
+
+        // Initial setup
+        fetchLogs();
+        setupAutoRefresh();
+        connectWebSocket();
+    </script>
+</body>
+</html>

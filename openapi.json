@@ -1,0 +1,409 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Mock Server",
+    "description": "Generic API mock server for authentication and webhook testing. Designed to test webhook integration payloads under different authentication protocols.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health Check",
+        "description": "Check whether the mock API is running and retrieve list of available endpoints.",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "application": { "type": "string", "example": "API Mock Server" },
+                    "status": { "type": "string", "example": "running" },
+                    "endpoints": {
+                      "type": "object",
+                      "properties": {
+                        "basic_auth": { "type": "string", "example": "GET /basic/auth" },
+                        "oauth_protected": { "type": "string", "example": "GET /oauth/protected" },
+                        "webhook": { "type": "string", "example": "POST /webhook" },
+                        "logs": { "type": "string", "example": "GET /logs" },
+                        "logs_json": { "type": "string", "example": "GET /logs/json" },
+                        "clear_logs": { "type": "string", "example": "DELETE /logs" },
+                        "swagger": { "type": "string", "example": "GET /docs" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/basic/auth": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Test Basic Authentication",
+        "description": "Endpoint to test HTTP Basic Authentication. Requires valid base64 encoded user:pass credentials.",
+        "security": [
+          {
+            "BasicAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentication Successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Basic Authentication successful" },
+                    "username": { "type": "string", "example": "admin" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid Credentials",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": { "type": "string" },
+                "description": "Challenge protocol"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/protected": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Test OAuth Bearer Authentication",
+        "description": "Endpoint to test OAuth Bearer Token authentication. Requires a valid bearer token.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bearer Token is Valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "OAuth Bearer Token is valid" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized / Invalid Token",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": { "type": "string" },
+                "description": "Challenge protocol"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook": {
+      "post": {
+        "tags": ["Webhook"],
+        "summary": "Receive Webhook (POST)",
+        "description": "Main endpoint to receive, authenticate, and log webhook payloads. Supports Basic Auth, OAuth Bearer Token, and API Key authentication methods.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "description": "Basic user:pass credentials or Bearer token.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "description": "API secret key value.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "ApiKey",
+            "in": "header",
+            "required": false,
+            "description": "Alternative API secret key header.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "api_key",
+            "in": "query",
+            "required": false,
+            "description": "API secret key passed as a query string parameter.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "description": "Generic payload to log (JSON, text, xml, etc.).",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook Authenticated and Logged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Webhook received and authenticated successfully" },
+                    "authentication_type": { "type": "string", "example": "OAUTH / BEARER TOKEN" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication Failed / Missing Credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "error" },
+                    "message": { "type": "string", "example": "Missing API Key" },
+                    "authentication_type": { "type": "string", "example": "NONE / INVALID" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Webhook"],
+        "summary": "Receive Webhook (GET)",
+        "description": "Retrieve information or test integration with GET webhook requests.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "api_key",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook Authenticated and Logged"
+          },
+          "401": {
+            "description": "Authentication Failed"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Webhook"],
+        "summary": "Receive Webhook (PUT)",
+        "description": "Receive and log webhook PUT payloads.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "api_key",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook Authenticated and Logged"
+          },
+          "401": {
+            "description": "Authentication Failed"
+          }
+        }
+      }
+    },
+    "/webhook/{path}": {
+      "post": {
+        "tags": ["Webhook"],
+        "summary": "Receive Webhook under subpath (POST)",
+        "description": "Receive, authenticate, and log webhook payloads directed to a specific device or resource subpath.",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "description": "The dynamic subpath/ID value.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "api_key",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook Authenticated and Logged"
+          },
+          "401": {
+            "description": "Authentication Failed"
+          }
+        }
+      }
+    },
+    "/logs/json": {
+      "get": {
+        "tags": ["Logs"],
+        "summary": "Get JSON Request Logs",
+        "description": "Returns a list of all incoming requests logged in the memory store.",
+        "responses": {
+          "200": {
+            "description": "List of logged requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": { "type": "integer", "example": 1 },
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": { "type": "string", "example": "2026-08-29T21:30:00+08:00" },
+                          "method": { "type": "string", "example": "POST" },
+                          "url": { "type": "string", "example": "http://localhost:8000/webhook" },
+                          "path": { "type": "string", "example": "/webhook" },
+                          "remote_ip": { "type": "string", "example": "127.0.0.1" },
+                          "authentication_type": { "type": "string", "example": "BASIC AUTH" },
+                          "authentication_success": { "type": "boolean", "example": true },
+                          "authentication_message": { "type": "string", "example": "Authenticated via Basic Auth" },
+                          "status_code": { "type": "integer", "example": 200 },
+                          "headers": { "type": "object" },
+                          "query_parameters": { "type": "object" },
+                          "body": { "type": "object" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logs": {
+      "delete": {
+        "tags": ["Logs"],
+        "summary": "Clear Request Logs",
+        "description": "Deletes all request logs stored in the in-memory logger database.",
+        "responses": {
+          "200": {
+            "description": "Logs successfully cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Request logs cleared" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "HTTP Basic Authentication using 'admin' / 'secretpassword'"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Bearer token authentication using 'oauth-token-xyz-789'"
+      }
+    }
+  }
+}
