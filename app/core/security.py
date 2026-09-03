@@ -2,7 +2,7 @@ import base64
 import secrets
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer
 from ..config import settings
 
@@ -20,48 +20,57 @@ bearer_security = HTTPBearer(
 logs_basic_security = HTTPBasic(
     scheme_name="LogsBasicAuth",
     realm="Request Logs Dashboard",
+    auto_error=False,
 )
 
 
+
 def get_logs_basic_auth(
+    request: Request,
     credentials: Optional[HTTPBasicCredentials] = Depends(logs_basic_security),
 ):
     """
-    HTTP Basic Authentication dependency for protecting the logs dashboard and JSON endpoint.
-    Triggers native browser username/password prompt if missing or invalid.
-    Can be bypassed via MOCK_REQUIRE_LOGS_AUTH=false.
+    Authentication dependency for protecting the logs dashboard and JSON endpoint.
+    Supports:
+    1. MOCK_REQUIRE_LOGS_AUTH=false toggle (bypass)
+    2. Session Cookie (`logs_session`) set by /logs/login
+    3. HTTP Basic Auth header (`Authorization: Basic ...`)
     """
     require_logs_auth = getattr(settings, "REQUIRE_LOGS_AUTH", True)
     if not require_logs_auth:
         return "anonymous"
 
-    if not credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required to view request logs",
-            headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
-        )
-
     logs_user = getattr(settings, "LOGS_BASIC_USER", getattr(settings, "VALID_BASIC_USER", "admin"))
     logs_pass = getattr(settings, "LOGS_BASIC_PASS", getattr(settings, "VALID_BASIC_PASS", "secretpassword"))
 
-    valid_user = secrets.compare_digest(
-        credentials.username,
-        logs_user,
-    )
-    valid_pass = secrets.compare_digest(
-        credentials.password,
-        logs_pass,
+    # Calculate expected session token
+    token_str = f"{logs_user}:{logs_pass}"
+    expected_token = base64.b64encode(token_str.encode("utf-8")).decode("utf-8")
+
+    # 1. Check Session Cookie
+    session_cookie = request.cookies.get("logs_session")
+    if session_cookie and secrets.compare_digest(session_cookie, expected_token):
+        return logs_user
+
+    # 2. Check HTTP Basic Auth Header
+    if credentials:
+        valid_user = secrets.compare_digest(credentials.username, logs_user)
+        valid_pass = secrets.compare_digest(credentials.password, logs_pass)
+        if valid_user and valid_pass:
+            return credentials.username
+
+    # 3. If request accepts HTML (browser navigation to /logs), return None so router redirects to login page
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header and request.url.path == "/logs":
+        return None
+
+    # 4. Otherwise (API/fetch calls), raise HTTP 401 Unauthorized
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required to view request logs",
+        headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
     )
 
-    if not valid_user or not valid_pass:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-            headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
-        )
-
-    return credentials.username
 
 
 

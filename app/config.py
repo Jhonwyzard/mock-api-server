@@ -16,13 +16,18 @@ class Settings:
     # Webhook authentication requirement toggle (MOCK_REQUIRE_AUTH=false allows anonymous webhooks)
     REQUIRE_AUTH: bool = os.getenv("MOCK_REQUIRE_AUTH", "true").lower() in ("true", "1", "yes")
 
-    # Logs Dashboard Authentication toggle & credentials
-    REQUIRE_LOGS_AUTH: bool = os.getenv("MOCK_REQUIRE_LOGS_AUTH", "true").lower() in ("true", "1", "yes")
+    # Logs Dashboard Authentication toggle & credentials (MOCK_REQUIRE_LOGS_AUTH=true turns on login requirement)
+    REQUIRE_LOGS_AUTH: bool = os.getenv("MOCK_REQUIRE_LOGS_AUTH", "false").lower() in ("true", "1", "yes")
     LOGS_BASIC_USER: str = os.getenv("MOCK_LOGS_USER", os.getenv("MOCK_BASIC_USER", "admin"))
     LOGS_BASIC_PASS: str = os.getenv("MOCK_LOGS_PASS", os.getenv("MOCK_BASIC_PASS", "secretpassword"))
 
+
     # Log store maximum history limit
     MAX_LOGS: int = int(os.getenv("MOCK_MAX_LOGS", "100"))
+
+    # Rate Limiting configuration
+    RATE_LIMIT_PER_SEC: int = int(os.getenv("MOCK_RATE_LIMIT_PER_SEC", "10"))
+    ENABLE_RATE_LIMIT: bool = os.getenv("MOCK_ENABLE_RATE_LIMIT", "true").lower() in ("true", "1", "yes")
 
     # CORS Allow Origins
     CORS_ALLOW_ORIGINS: list = [
@@ -33,5 +38,6 @@ class Settings:
 
 
 settings = Settings()
+
 
 

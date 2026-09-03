@@ -5,19 +5,62 @@ from app.core.logger import log_store
 auth_headers = {"Authorization": "Basic YWRtaW46c2VjcmV0cGFzc3dvcmQ="}  # admin:secretpassword
 
 
-def test_logs_unauthenticated_returns_401(client):
-    """Verify /logs and /logs/json require HTTP Basic Auth."""
-    res_html = client.get("/logs")
-    assert res_html.status_code == 401
-    assert "WWW-Authenticate" in res_html.headers
+def test_logs_unauthenticated_browser_redirects(client, monkeypatch):
+    """Verify /logs redirects browser navigation (text/html) to /logs/login when REQUIRE_LOGS_AUTH is True."""
+    monkeypatch.setattr(settings, "REQUIRE_LOGS_AUTH", True)
+    res_html = client.get("/logs", headers={"Accept": "text/html"}, follow_redirects=False)
+    assert res_html.status_code == 303
+    assert res_html.headers["location"] == "/logs/login"
 
+
+def test_logs_unauthenticated_api_returns_401(client, monkeypatch):
+    """Verify /logs/json returns 401 Unauthorized when unauthenticated and REQUIRE_LOGS_AUTH is True."""
+    monkeypatch.setattr(settings, "REQUIRE_LOGS_AUTH", True)
     res_json = client.get("/logs/json")
     assert res_json.status_code == 401
     assert "WWW-Authenticate" in res_json.headers
 
 
-def test_logs_dashboard_html(client):
-    """Verify GET /logs renders the dashboard HTML successfully with Basic Auth."""
+
+def test_logs_login_page_renders(client):
+    """Verify GET /logs/login renders login HTML page."""
+    response = client.get("/logs/login")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Sign In to Dashboard" in response.text
+
+
+def test_logs_login_flow(client, monkeypatch):
+    """Verify POST /logs/login authenticates and allows access via cookie session."""
+    monkeypatch.setattr(settings, "REQUIRE_LOGS_AUTH", True)
+    # Invalid login
+
+    res_invalid = client.post("/logs/login", data={"username": "admin", "password": "wrong"})
+    assert res_invalid.status_code == 401
+
+    # Valid login
+    res_valid = client.post(
+        "/logs/login",
+        data={"username": settings.LOGS_BASIC_USER, "password": settings.LOGS_BASIC_PASS},
+    )
+    assert res_valid.status_code == 200
+    assert "logs_session" in res_valid.cookies
+
+    # Access /logs and /logs/json with cookie
+    res_dashboard = client.get("/logs", cookies=res_valid.cookies)
+    assert res_dashboard.status_code == 200
+    assert "API Mock Server" in res_dashboard.text
+
+    res_json = client.get("/logs/json", cookies=res_valid.cookies)
+    assert res_json.status_code == 200
+
+    # Logout
+    res_logout = client.post("/logs/logout", cookies=res_valid.cookies)
+    assert res_logout.status_code == 200
+
+
+def test_logs_dashboard_html_basic_auth_header(client):
+    """Verify GET /logs renders the dashboard HTML successfully with Basic Auth header."""
     response = client.get("/logs", headers=auth_headers)
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
@@ -82,5 +125,6 @@ def test_logs_require_logs_auth_bypassed(client, monkeypatch):
     res_json = client.get("/logs/json")
     assert res_json.status_code == 200
     assert "count" in res_json.json()
+
 
 

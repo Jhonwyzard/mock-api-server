@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from .config import settings
-from .routers import auth, webhook, logs
+from .core.rate_limiter import rate_limiter
+from .routers import auth, logs, webhook
 
 app = FastAPI(
     title="API Mock Server",
@@ -19,10 +22,31 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Global sliding window rate limiting per IP address to protect against bombardment."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    limit = getattr(settings, "RATE_LIMIT_PER_SEC", 10)
+
+    if not rate_limiter.is_allowed(client_ip=client_ip, limit=limit, window_seconds=1.0):
+        return JSONResponse(
+            status_code=429,
+            content={
+                "status": "error",
+                "message": "Too Many Requests - Rate limit exceeded",
+                "rate_limit_per_sec": limit,
+            },
+            headers={"Retry-After": "1"},
+        )
+
+    return await call_next(request)
+
+
 # Register routes from our modular routers
 app.include_router(auth.router)
 app.include_router(webhook.router)
 app.include_router(logs.router)
+
 
 
 @app.get(
