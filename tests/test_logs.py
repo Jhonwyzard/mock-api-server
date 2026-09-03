@@ -71,3 +71,16 @@ def test_clear_logs(client):
     json_response = client.get("/logs/json", headers=auth_headers)
     assert json_response.json()["count"] == 0
 
+
+def test_logs_require_logs_auth_bypassed(client, monkeypatch):
+    """Verify /logs and /logs/json allow unauthenticated access when REQUIRE_LOGS_AUTH is False."""
+    monkeypatch.setattr(settings, "REQUIRE_LOGS_AUTH", False)
+
+    res_html = client.get("/logs")
+    assert res_html.status_code == 200
+
+    res_json = client.get("/logs/json")
+    assert res_json.status_code == 200
+    assert "count" in res_json.json()
+
+

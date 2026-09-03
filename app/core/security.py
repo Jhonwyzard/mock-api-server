@@ -29,7 +29,12 @@ def get_logs_basic_auth(
     """
     HTTP Basic Authentication dependency for protecting the logs dashboard and JSON endpoint.
     Triggers native browser username/password prompt if missing or invalid.
+    Can be bypassed via MOCK_REQUIRE_LOGS_AUTH=false.
     """
+    require_logs_auth = getattr(settings, "REQUIRE_LOGS_AUTH", True)
+    if not require_logs_auth:
+        return "anonymous"
+
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,13 +42,16 @@ def get_logs_basic_auth(
             headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
         )
 
+    logs_user = getattr(settings, "LOGS_BASIC_USER", getattr(settings, "VALID_BASIC_USER", "admin"))
+    logs_pass = getattr(settings, "LOGS_BASIC_PASS", getattr(settings, "VALID_BASIC_PASS", "secretpassword"))
+
     valid_user = secrets.compare_digest(
         credentials.username,
-        settings.VALID_BASIC_USER,
+        logs_user,
     )
     valid_pass = secrets.compare_digest(
         credentials.password,
-        settings.VALID_BASIC_PASS,
+        logs_pass,
     )
 
     if not valid_user or not valid_pass:
@@ -54,6 +62,7 @@ def get_logs_basic_auth(
         )
 
     return credentials.username
+
 
 
 
@@ -212,14 +221,16 @@ def check_auth(
     Returns:
         (success, authentication_type, message)
     """
+    require_auth = getattr(settings, "REQUIRE_AUTH", True)
+
     if authorization:
         if authorization.startswith("Basic "):
             res = check_basic_auth(authorization)
-            if res[0] or settings.REQUIRE_AUTH:
+            if res[0] or require_auth:
                 return res
         elif authorization.startswith("Bearer "):
             res = check_bearer_token(authorization)
-            if res[0] or settings.REQUIRE_AUTH:
+            if res[0] or require_auth:
                 return res
 
     res = check_api_key(
@@ -231,7 +242,7 @@ def check_auth(
     if res[0]:
         return res
 
-    if not settings.REQUIRE_AUTH:
+    if not require_auth:
         return (
             True,
             "ANONYMOUS / NONE",
@@ -239,4 +250,5 @@ def check_auth(
         )
 
     return res
+
 

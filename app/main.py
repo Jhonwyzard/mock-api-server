@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .config import settings
 from .routers import auth, webhook, logs
 
 app = FastAPI(
@@ -11,11 +12,12 @@ app = FastAPI(
 # Enable CORS for cross-origin frontend integration testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ALLOW_ORIGINS,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Register routes from our modular routers
 app.include_router(auth.router)
