@@ -2,7 +2,8 @@ import base64
 import secrets
 from typing import Optional
 
-from fastapi.security import HTTPBasic, HTTPBearer
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer
 from ..config import settings
 
 # Swagger Security Schemes
@@ -15,6 +16,45 @@ bearer_security = HTTPBearer(
     scheme_name="BearerAuth",
     auto_error=False,  # Allows other authentication routes to fall through
 )
+
+logs_basic_security = HTTPBasic(
+    scheme_name="LogsBasicAuth",
+    realm="Request Logs Dashboard",
+)
+
+
+def get_logs_basic_auth(
+    credentials: Optional[HTTPBasicCredentials] = Depends(logs_basic_security),
+):
+    """
+    HTTP Basic Authentication dependency for protecting the logs dashboard and JSON endpoint.
+    Triggers native browser username/password prompt if missing or invalid.
+    """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view request logs",
+            headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
+        )
+
+    valid_user = secrets.compare_digest(
+        credentials.username,
+        settings.VALID_BASIC_USER,
+    )
+    valid_pass = secrets.compare_digest(
+        credentials.password,
+        settings.VALID_BASIC_PASS,
+    )
+
+    if not valid_user or not valid_pass:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": 'Basic realm="Request Logs Dashboard"'},
+        )
+
+    return credentials.username
+
 
 
 def check_basic_auth(authorization: Optional[str]):
@@ -174,12 +214,29 @@ def check_auth(
     """
     if authorization:
         if authorization.startswith("Basic "):
-            return check_basic_auth(authorization)
-        if authorization.startswith("Bearer "):
-            return check_bearer_token(authorization)
+            res = check_basic_auth(authorization)
+            if res[0] or settings.REQUIRE_AUTH:
+                return res
+        elif authorization.startswith("Bearer "):
+            res = check_bearer_token(authorization)
+            if res[0] or settings.REQUIRE_AUTH:
+                return res
 
-    return check_api_key(
+    res = check_api_key(
         x_api_key=x_api_key,
         api_key_header=api_key_header,
         query_api_key=query_api_key,
     )
+
+    if res[0]:
+        return res
+
+    if not settings.REQUIRE_AUTH:
+        return (
+            True,
+            "ANONYMOUS / NONE",
+            "Authentication bypassed (MOCK_REQUIRE_AUTH=false)",
+        )
+
+    return res
+

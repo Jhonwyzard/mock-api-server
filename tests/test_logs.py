@@ -2,17 +2,31 @@ from app.config import settings
 from app.core.logger import log_store
 
 
+auth_headers = {"Authorization": "Basic YWRtaW46c2VjcmV0cGFzc3dvcmQ="}  # admin:secretpassword
+
+
+def test_logs_unauthenticated_returns_401(client):
+    """Verify /logs and /logs/json require HTTP Basic Auth."""
+    res_html = client.get("/logs")
+    assert res_html.status_code == 401
+    assert "WWW-Authenticate" in res_html.headers
+
+    res_json = client.get("/logs/json")
+    assert res_json.status_code == 401
+    assert "WWW-Authenticate" in res_json.headers
+
+
 def test_logs_dashboard_html(client):
-    """Verify GET /logs renders the dashboard HTML successfully."""
-    response = client.get("/logs")
+    """Verify GET /logs renders the dashboard HTML successfully with Basic Auth."""
+    response = client.get("/logs", headers=auth_headers)
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "API Mock Server" in response.text
 
 
 def test_logs_json_initial(client):
-    """Verify GET /logs/json returns an empty log array initially."""
-    response = client.get("/logs/json")
+    """Verify GET /logs/json returns an empty log array initially with Basic Auth."""
+    response = client.get("/logs/json", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["count"] == 0
@@ -26,8 +40,8 @@ def test_logs_json_with_records(client):
         f"/webhook?api_key={settings.VALID_API_KEY}",
         json={"event": "logged-event", "id": "1"},
     )
-    
-    response = client.get("/logs/json")
+
+    response = client.get("/logs/json", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["count"] == 1
@@ -42,17 +56,18 @@ def test_clear_logs(client):
         json={"event": "logged-event"},
     )
     assert log_store.count() == 1
-    
+
     # Send clear request
-    response = client.delete("/logs")
+    response = client.delete("/logs", headers=auth_headers)
     assert response.status_code == 200
     assert response.json() == {
         "status": "success",
         "message": "Request logs cleared",
     }
-    
+
     # Confirm empty store
     assert log_store.count() == 0
-    
-    json_response = client.get("/logs/json")
+
+    json_response = client.get("/logs/json", headers=auth_headers)
     assert json_response.json()["count"] == 0
+

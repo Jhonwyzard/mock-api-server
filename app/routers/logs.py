@@ -1,8 +1,9 @@
 import os
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
 from ..core.logger import log_store
+from ..core.security import get_logs_basic_auth
 
 router = APIRouter(tags=["Logs"])
 
@@ -14,7 +15,7 @@ DASHBOARD_PATH = os.path.join(TEMPLATES_DIR, "dashboard.html")
 
 
 @router.get("/logs", response_class=HTMLResponse, include_in_schema=False)
-async def logs_dashboard():
+async def logs_dashboard(_: str = Depends(get_logs_basic_auth)):
     """
     Display received webhook requests in a browser using a premium interactive dashboard.
     """
@@ -30,7 +31,7 @@ async def logs_dashboard():
 
 
 @router.get("/logs/json")
-async def logs_json():
+async def logs_json(_: str = Depends(get_logs_basic_auth)):
     """
     Return all received webhook requests as JSON.
     """
@@ -41,8 +42,9 @@ async def logs_json():
 
 
 @router.delete("/logs")
-async def clear_logs():
+async def clear_logs(_: str = Depends(get_logs_basic_auth)):
     """Clear all stored request logs."""
+
     log_store.clear()
     await log_store.broadcast_update()
     return {
