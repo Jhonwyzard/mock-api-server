@@ -134,4 +134,5 @@ async def webhook_receiver(
     return JSONResponse(
         status_code=status_code,
         content=response_content,
+        headers={"WWW-Authenticate": "Basic"} if status_code == 401 else {},
     )
