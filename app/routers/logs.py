@@ -1,8 +1,6 @@
 import base64
 import os
 import secrets
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -87,7 +85,7 @@ async def logs_logout():
 
 
 @router.get("/logs", response_class=HTMLResponse, include_in_schema=False)
-async def logs_dashboard(user: Optional[str] = Depends(get_logs_basic_auth)):
+async def logs_dashboard(user: str | None = Depends(get_logs_basic_auth)):
     """
     Display received webhook requests in a browser using a premium interactive dashboard.
     """

@@ -21,7 +21,7 @@ The server is built with **FastAPI** and provides:
 
 # Requirements
 
-* Python 3.10+
+* Python 3.13+
 * pip
 * Optional: ngrok, if external systems need to access the local server
 

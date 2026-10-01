@@ -1,6 +1,6 @@
 import threading
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import Request, WebSocket
 from ..config import settings
@@ -10,9 +10,9 @@ class LogStore:
     """Thread-safe, in-memory log storage for incoming requests."""
 
     def __init__(self):
-        self._logs: List[Dict[str, Any]] = []
+        self._logs: list[dict[str, Any]] = []
         self._lock = threading.Lock()
-        self._active_connections: List[WebSocket] = []
+        self._active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -39,7 +39,7 @@ class LogStore:
         auth_message: str,
         status_code: int,
         body: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Construct and append a log entry thread-safely.
         Limits log entries to settings.MAX_LOGS.
@@ -79,7 +79,7 @@ class LogStore:
         with self._lock:
             self._logs.clear()
 
-    def get_all(self) -> List[Dict[str, Any]]:
+    def get_all(self) -> list[dict[str, Any]]:
         """Return a copy of all stored logs thread-safely."""
         with self._lock:
             return list(self._logs)

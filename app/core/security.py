@@ -1,6 +1,5 @@
 import base64
 import secrets
-from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, HTTPBearer
@@ -27,7 +26,7 @@ logs_basic_security = HTTPBasic(
 
 def get_logs_basic_auth(
     request: Request,
-    credentials: Optional[HTTPBasicCredentials] = Depends(logs_basic_security),
+    credentials: HTTPBasicCredentials | None = Depends(logs_basic_security),
 ):
     """
     Authentication dependency for protecting the logs dashboard and JSON endpoint.
@@ -75,7 +74,7 @@ def get_logs_basic_auth(
 
 
 
-def check_basic_auth(authorization: Optional[str]):
+def check_basic_auth(authorization: str | None):
     """
     Validate HTTP Basic Authentication.
 
@@ -125,7 +124,7 @@ def check_basic_auth(authorization: Optional[str]):
         )
 
 
-def check_bearer_token(authorization: Optional[str]):
+def check_bearer_token(authorization: str | None):
     """
     Validate OAuth Bearer Token.
 
@@ -159,9 +158,9 @@ def check_bearer_token(authorization: Optional[str]):
 
 
 def check_api_key(
-    x_api_key: Optional[str],
-    api_key_header: Optional[str],
-    query_api_key: Optional[str],
+    x_api_key: str | None,
+    api_key_header: str | None,
+    query_api_key: str | None,
 ):
     """
     Validate API Key from headers or query parameters.
@@ -219,10 +218,10 @@ def check_api_key(
 
 
 def check_auth(
-    authorization: Optional[str],
-    x_api_key: Optional[str],
-    api_key_header: Optional[str],
-    query_api_key: Optional[str],
+    authorization: str | None,
+    x_api_key: str | None,
+    api_key_header: str | None,
+    query_api_key: str | None,
 ):
     """
     Validate any supported authentication method sequentially.

@@ -30,7 +30,7 @@ class Settings:
     ENABLE_RATE_LIMIT: bool = os.getenv("MOCK_ENABLE_RATE_LIMIT", "true").lower() in ("true", "1", "yes")
 
     # CORS Allow Origins
-    CORS_ALLOW_ORIGINS: list = [
+    CORS_ALLOW_ORIGINS: list[str] = [
         origin.strip()
         for origin in os.getenv("MOCK_CORS_ORIGINS", "*").split(",")
         if origin.strip()

@@ -1,8 +1,6 @@
 import time
 from collections import defaultdict
 from threading import Lock
-from typing import Dict, List
-
 from ..config import settings
 
 
@@ -13,7 +11,7 @@ class RateLimiter:
 
     def __init__(self):
         self._lock = Lock()
-        self._requests: Dict[str, List[float]] = defaultdict(list)
+        self._requests: dict[str, list[float]] = defaultdict(list)
 
     def is_allowed(
         self,

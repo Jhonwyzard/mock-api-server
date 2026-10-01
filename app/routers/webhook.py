@@ -1,7 +1,5 @@
 import json
 from datetime import datetime
-from typing import Optional
-
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 
@@ -15,10 +13,10 @@ router = APIRouter(tags=["Webhook"])
 @router.api_route("/webhook/{path:path}", methods=["POST", "GET", "PUT"])
 async def webhook_receiver(
     request: Request,
-    path: Optional[str] = None,
-    authorization: Optional[str] = Header(default=None),
-    x_api_key: Optional[str] = Header(default=None),
-    api_key: Optional[str] = Header(default=None),
+    path: str | None = None,
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    api_key: str | None = Header(default=None),
 ):
     """
     Receive, authenticate, and inspect webhook requests.
